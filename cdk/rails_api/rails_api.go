@@ -106,7 +106,7 @@ func NewRailsApiStack(scope constructs.Construct, id string, props *RailsApiStac
       Vpc: vpc,
       InternetFacing: jsii.Bool(true),
       SecurityGroup: albSecurityGroup,
-      LoadBalancerName: jsii.String("rails_api_alb"),
+      LoadBalancerName: jsii.String("rails-api-alb"),
     })
 
     // ALBリスナーの作成
