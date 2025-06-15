@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"bg_deploy_sample/components/network"
+
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
@@ -19,6 +21,8 @@ func NewBgDeploySampleStack(scope constructs.Construct, id string, props *BgDepl
 		sprops = props.StackProps
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
+
+	network.NewNetwork(stack)
 
 	return stack
 }
