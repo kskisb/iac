@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
+	"github.com/joho/godotenv"
 )
 
 type BgDeploySampleStackProps struct {
@@ -25,6 +26,9 @@ func NewBgDeploySampleStack(scope constructs.Construct, id string, props *BgDepl
 func main() {
 	defer jsii.Close()
 
+	// 環境変数読み込み
+	godotenv.Load()
+
 	app := awscdk.NewApp(nil)
 
 	NewBgDeploySampleStack(app, "BgDeploySampleStack", &BgDeploySampleStackProps{
@@ -38,7 +42,7 @@ func main() {
 
 func env() *awscdk.Environment {
 	return &awscdk.Environment{
-		Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
-		Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
+		Account: jsii.String(os.Getenv("ACCOUNT_ID")),
+		Region:  jsii.String(os.Getenv("REGION")),
 	}
 }
