@@ -68,7 +68,7 @@ func NewNetwork(stack constructs.Construct) *Network {
 		Vpc:              vpc,
 		InternetFacing:   jsii.Bool(true),
 		SecurityGroup:    albSecurityGroup,
-		IpAddressType:    awselasticloadbalancingv2.IpAddressType_DUAL_STACK,
+		IpAddressType:    awselasticloadbalancingv2.IpAddressType_IPV4,
 	})
 
 	listener1 := alb.AddListener(jsii.String(resourceName+"-listener1"), &awselasticloadbalancingv2.BaseApplicationListenerProps{
