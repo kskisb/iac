@@ -92,8 +92,8 @@ func NewNetwork(stack constructs.Construct) *Network {
 		TargetType:      awselasticloadbalancingv2.TargetType_IP,
 		HealthCheck: &awselasticloadbalancingv2.HealthCheck{
 			Path:     jsii.String("/"),
-			Interval: awscdk.Duration_Seconds(jsii.Number(300)),
-			Timeout:  awscdk.Duration_Seconds(jsii.Number(120)),
+			Interval: awscdk.Duration_Seconds(jsii.Number(60)),
+			Timeout:  awscdk.Duration_Seconds(jsii.Number(30)),
 		},
 	})
 
@@ -106,8 +106,8 @@ func NewNetwork(stack constructs.Construct) *Network {
 		TargetType:      awselasticloadbalancingv2.TargetType_IP,
 		HealthCheck: &awselasticloadbalancingv2.HealthCheck{
 			Path:     jsii.String("/"),
-			Interval: awscdk.Duration_Seconds(jsii.Number(300)),
-			Timeout:  awscdk.Duration_Seconds(jsii.Number(120)),
+			Interval: awscdk.Duration_Seconds(jsii.Number(60)),
+			Timeout:  awscdk.Duration_Seconds(jsii.Number(30)),
 		},
 	})
 
