@@ -101,9 +101,9 @@ func NewService(stack constructs.Construct, network *network.Network) *Service {
 		AssignPublicIp:         jsii.Bool(false),
 		HealthCheckGracePeriod: awscdk.Duration_Seconds(jsii.Number(3600)),
 		SecurityGroups:         &[]awsec2.ISecurityGroup{sg},
-		// DeploymentController: &awsecs.DeploymentController{
-		// 	Type: awsecs.DeploymentControllerType_CODE_DEPLOY,
-		// },
+		DeploymentController: &awsecs.DeploymentController{
+			Type: awsecs.DeploymentControllerType_CODE_DEPLOY,
+		},
 	})
 
 	targetGroup1.AddTarget(service.LoadBalancerTarget(&awsecs.LoadBalancerTargetOptions{

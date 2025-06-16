@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"bg_deploy_sample/components/deployment"
 	"bg_deploy_sample/components/network"
 	"bg_deploy_sample/components/service"
 
@@ -25,7 +26,9 @@ func NewBgDeploySampleStack(scope constructs.Construct, id string, props *BgDepl
 
 	network := network.NewNetwork(stack)
 
-	service.NewService(stack, network)
+	service := service.NewService(stack, network)
+
+	deployment.NewDeployment(stack, network, service)
 
 	return stack
 }
