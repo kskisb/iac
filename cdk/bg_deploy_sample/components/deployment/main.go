@@ -26,9 +26,9 @@ type Deployment struct {
 func NewDeployment(stack constructs.Construct, network *network.Network, service *service.Service) *Deployment {
 	resourceName := os.Getenv("RESOURCE_NAME")
 	githubConnectionArn := os.Getenv("GITHUB_CONNECTION_ARN")
-	repositoryOwner := os.Getenv("REPOSITORY_OWNER")
-	repositoryName := os.Getenv("REPOSITORY_NAME")
-	branchName := os.Getenv("BRANCH_NAME")
+	repositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
+	repositoryName := os.Getenv("GITHUB_REPOSITORY_NAME")
+	branchName := os.Getenv("GITHUB_BRANCH_NAME")
 
 	// CodeDeploy設定
 	codeDeployApp := awscodedeploy.NewEcsApplication(stack, jsii.String(resourceName+"-deployment"), &awscodedeploy.EcsApplicationProps{
