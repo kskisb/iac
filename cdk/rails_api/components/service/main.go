@@ -17,23 +17,12 @@ import (
 )
 
 type Service struct {
-	NginxRepository awsecr.IRepository
-	Cluster         awsecs.Cluster
-	TaskDef         awsecs.FargateTaskDefinition
-	Service         awsecs.FargateService
-	ExecutionRole   awsiam.IRole
-	TaskRole        awsiam.IRole
-}
-
-type Network struct {
-	Vpc              awsec2.IVpc
-	AlbSecurityGroup awsec2.ISecurityGroup
-	EcsSecurityGroup awsec2.ISecurityGroup
-	Alb              awselasticloadbalancingv2.ApplicationLoadBalancer
-	Listener1        awselasticloadbalancingv2.ApplicationListener
-	Listener2        awselasticloadbalancingv2.ApplicationListener
-	TargetGroup1     awselasticloadbalancingv2.ApplicationTargetGroup
-	TargetGroup2     awselasticloadbalancingv2.ApplicationTargetGroup
+	Repository    awsecr.IRepository
+	Cluster       awsecs.Cluster
+	TaskDef       awsecs.FargateTaskDefinition
+	Service       awsecs.FargateService
+	ExecutionRole awsiam.IRole
+	TaskRole      awsiam.IRole
 }
 
 func NewService(stack constructs.Construct, network *network.Network) *Service {
@@ -122,11 +111,11 @@ func NewService(stack constructs.Construct, network *network.Network) *Service {
 	}))
 
 	return &Service{
-		NginxRepository: repository,
-		Cluster:         cluster,
-		TaskDef:         taskDef,
-		Service:         service,
-		ExecutionRole:   executionRole,
-		TaskRole:        taskRole,
+		Repository:    repository,
+		Cluster:       cluster,
+		TaskDef:       taskDef,
+		Service:       service,
+		ExecutionRole: executionRole,
+		TaskRole:      taskRole,
 	}
 }
