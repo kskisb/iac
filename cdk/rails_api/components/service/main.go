@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsec2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecs"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awselasticloadbalancingv2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslogs"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -74,6 +73,10 @@ func NewService(stack constructs.Construct, network *network.Network) *Service {
 			"RAILS_ENV":                jsii.String("production"),
 			"RAILS_SERVE_STATIC_FILES": jsii.String("true"),
 			"RAILS_MASTER_KEY":         jsii.String(railsMasterKey),
+			"DB_HOST":                  jsii.String(os.Getenv("DB_HOST")),
+			"DB_USERNAME":              jsii.String(os.Getenv("DB_USERNAME")),
+			"DB_PASSWORD":              jsii.String(os.Getenv("DB_PASSWORD")),
+			"DB_PORT":                  jsii.String(os.Getenv("DB_PORT")),
 		},
 		Logging: awsecs.LogDrivers_AwsLogs(&awsecs.AwsLogDriverProps{
 			LogGroup: awslogs.NewLogGroup(stack, jsii.String(resourceName+"-log-group"), &awslogs.LogGroupProps{
