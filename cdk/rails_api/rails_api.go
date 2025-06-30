@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"rails_api/components/network"
+	"rails_api/components/rds"
 	"rails_api/components/service"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
@@ -24,6 +25,8 @@ func NewRailsApiStack(scope constructs.Construct, id string, props *RailsApiStac
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
 	network := network.NewNetwork(stack)
+
+	rds.NewRDS(stack, network)
 
 	service.NewService(stack, network)
 
