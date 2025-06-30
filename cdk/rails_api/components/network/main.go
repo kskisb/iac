@@ -17,11 +17,12 @@ type Network struct {
 	Vpc              awsec2.IVpc
 	AlbSecurityGroup awsec2.ISecurityGroup
 	EcsSecurityGroup awsec2.ISecurityGroup
+	RdsSecurityGroup awsec2.ISecurityGroup
 	Alb              awselasticloadbalancingv2.ApplicationLoadBalancer
 	Listener1        awselasticloadbalancingv2.ApplicationListener
 	Listener2        awselasticloadbalancingv2.ApplicationListener
 	TargetGroup1     awselasticloadbalancingv2.ApplicationTargetGroup
-	TargetGroup2     awselasticloadbalancingv2.ApplicationTargetGroup
+	// TargetGroup2     awselasticloadbalancingv2.ApplicationTargetGroup
 }
 
 func NewNetwork(stack constructs.Construct) *Network {
@@ -34,6 +35,23 @@ func NewNetwork(stack constructs.Construct) *Network {
 		MaxAzs:                       jsii.Number(2),
 		NatGateways:                  jsii.Number(0),
 		RestrictDefaultSecurityGroup: jsii.Bool(false),
+		SubnetConfiguration: &[]*awsec2.SubnetConfiguration{
+			{
+				Name:       jsii.String("public"),
+				SubnetType: awsec2.SubnetType_PUBLIC,
+				CidrMask:   jsii.Number(24),
+			},
+			{
+				Name:       jsii.String("private"),
+				SubnetType: awsec2.SubnetType_PRIVATE_WITH_EGRESS,
+				CidrMask:   jsii.Number(24),
+			},
+			{
+				Name:       jsii.String("isolated"),
+				SubnetType: awsec2.SubnetType_PRIVATE_ISOLATED,
+				CidrMask:   jsii.Number(24),
+			},
+		},
 	})
 
 	vpc.AddGatewayEndpoint(jsii.String("com.amazonaws.ap-northeast-1.s3"), &awsec2.GatewayVpcEndpointOptions{
@@ -69,6 +87,14 @@ func NewNetwork(stack constructs.Construct) *Network {
 	})
 	ecsSecurityGroup.AddIngressRule(albSecurityGroup, awsec2.Port_Tcp(jsii.Number(3000)), jsii.String("http from alb to rails"), jsii.Bool(false))
 
+	// sg for RDS
+	rdsSecurityGroup := awsec2.NewSecurityGroup(stack, jsii.String(resourceName+"-sg-rds"), &awsec2.SecurityGroupProps{
+		SecurityGroupName: jsii.String(resourceName + "-sg-rds"),
+		Vpc:               vpc,
+		AllowAllOutbound:  jsii.Bool(false),
+	})
+	rdsSecurityGroup.AddIngressRule(ecsSecurityGroup, awsec2.Port_Tcp(jsii.Number(5432)), jsii.String("PostgreSQL from ECS"), jsii.Bool(false))
+
 	// alb
 	alb := awselasticloadbalancingv2.NewApplicationLoadBalancer(stack, jsii.String(resourceName+"-alb"), &awselasticloadbalancingv2.ApplicationLoadBalancerProps{
 		LoadBalancerName: jsii.String(resourceName + "-alb"),
@@ -89,7 +115,7 @@ func NewNetwork(stack constructs.Construct) *Network {
 		Validation: awscertificatemanager.CertificateValidation_FromDns(hostedZone),
 	})
 
-	listener1 := alb.AddListener(jsii.String(resourceName+"-listener2"), &awselasticloadbalancingv2.BaseApplicationListenerProps{
+	listener1 := alb.AddListener(jsii.String(resourceName+"-listener-https"), &awselasticloadbalancingv2.BaseApplicationListenerProps{
 		Port:     jsii.Number(443),
 		Protocol: awselasticloadbalancingv2.ApplicationProtocol_HTTPS,
 		Certificates: &[]awselasticloadbalancingv2.IListenerCertificate{
@@ -97,17 +123,20 @@ func NewNetwork(stack constructs.Construct) *Network {
 		},
 	})
 
-	listener2 := alb.AddListener(jsii.String(resourceName+"-listener1"), &awselasticloadbalancingv2.BaseApplicationListenerProps{
+	listener2 := alb.AddListener(jsii.String(resourceName+"-listener-http"), &awselasticloadbalancingv2.BaseApplicationListenerProps{
 		Port:     jsii.Number(80),
 		Protocol: awselasticloadbalancingv2.ApplicationProtocol_HTTP,
-		Open:     jsii.Bool(true),
+		DefaultAction: awselasticloadbalancingv2.ListenerAction_Redirect(&awselasticloadbalancingv2.RedirectOptions{
+			Protocol: jsii.String("HTTPS"),
+			Port:     jsii.String("443"),
+		}),
 	})
 
 	// tg1
 	targetGroup1 := awselasticloadbalancingv2.NewApplicationTargetGroup(stack, jsii.String(resourceName+"-tg1"), &awselasticloadbalancingv2.ApplicationTargetGroupProps{
 		TargetGroupName: jsii.String(resourceName + "-tg1"),
 		Vpc:             vpc,
-		Port:            jsii.Number(80),
+		Port:            jsii.Number(3000),
 		Protocol:        awselasticloadbalancingv2.ApplicationProtocol_HTTP,
 		TargetType:      awselasticloadbalancingv2.TargetType_IP,
 		HealthCheck: &awselasticloadbalancingv2.HealthCheck{
@@ -118,26 +147,26 @@ func NewNetwork(stack constructs.Construct) *Network {
 	})
 
 	// tg2 (Blue/Greenデプロイ用)
-	targetGroup2 := awselasticloadbalancingv2.NewApplicationTargetGroup(stack, jsii.String(resourceName+"-tg2"), &awselasticloadbalancingv2.ApplicationTargetGroupProps{
-		TargetGroupName: jsii.String(resourceName + "-tg2"),
-		Vpc:             vpc,
-		Port:            jsii.Number(80),
-		Protocol:        awselasticloadbalancingv2.ApplicationProtocol_HTTP,
-		TargetType:      awselasticloadbalancingv2.TargetType_IP,
-		HealthCheck: &awselasticloadbalancingv2.HealthCheck{
-			Path:     jsii.String("/up"),
-			Interval: awscdk.Duration_Seconds(jsii.Number(60)),
-			Timeout:  awscdk.Duration_Seconds(jsii.Number(30)),
-		},
-	})
+	// targetGroup2 := awselasticloadbalancingv2.NewApplicationTargetGroup(stack, jsii.String(resourceName+"-tg2"), &awselasticloadbalancingv2.ApplicationTargetGroupProps{
+	// 	TargetGroupName: jsii.String(resourceName + "-tg2"),
+	// 	Vpc:             vpc,
+	// 	Port:            jsii.Number(80),
+	// 	Protocol:        awselasticloadbalancingv2.ApplicationProtocol_HTTP,
+	// 	TargetType:      awselasticloadbalancingv2.TargetType_IP,
+	// 	HealthCheck: &awselasticloadbalancingv2.HealthCheck{
+	// 		Path:     jsii.String("/up"),
+	// 		Interval: awscdk.Duration_Seconds(jsii.Number(60)),
+	// 		Timeout:  awscdk.Duration_Seconds(jsii.Number(30)),
+	// 	},
+	// })
 
 	listener1.AddTargetGroups(jsii.String(resourceName+"-tg1"), &awselasticloadbalancingv2.AddApplicationTargetGroupsProps{
 		TargetGroups: &[]awselasticloadbalancingv2.IApplicationTargetGroup{targetGroup1},
 	})
 
-	listener2.AddTargetGroups(jsii.String(resourceName+"-tg2"), &awselasticloadbalancingv2.AddApplicationTargetGroupsProps{
-		TargetGroups: &[]awselasticloadbalancingv2.IApplicationTargetGroup{targetGroup2},
-	})
+	// listener2.AddTargetGroups(jsii.String(resourceName+"-tg2"), &awselasticloadbalancingv2.AddApplicationTargetGroupsProps{
+	// 	TargetGroups: &[]awselasticloadbalancingv2.IApplicationTargetGroup{targetGroup2},
+	// })
 
 	// ALBのDNS名をRoute53に登録
 	awsroute53.NewARecord(stack, jsii.String("ARecord"), &awsroute53.ARecordProps{
@@ -149,10 +178,11 @@ func NewNetwork(stack constructs.Construct) *Network {
 		Vpc:              vpc,
 		AlbSecurityGroup: albSecurityGroup,
 		EcsSecurityGroup: ecsSecurityGroup,
+		RdsSecurityGroup: rdsSecurityGroup,
 		Alb:              alb,
 		Listener1:        listener1,
 		Listener2:        listener2,
 		TargetGroup1:     targetGroup1,
-		TargetGroup2:     targetGroup2,
+		// TargetGroup2:     targetGroup2,
 	}
 }
