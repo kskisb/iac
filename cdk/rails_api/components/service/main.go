@@ -77,6 +77,7 @@ func NewService(stack constructs.Construct, network *network.Network) *Service {
 			"DB_USERNAME":              jsii.String(os.Getenv("DB_USERNAME")),
 			"DB_PASSWORD":              jsii.String(os.Getenv("DB_PASSWORD")),
 			"DB_PORT":                  jsii.String(os.Getenv("DB_PORT")),
+			"ALLOWED_ORIGIN":           jsii.String(os.Getenv("ALLOWED_ORIGIN")),
 		},
 		Logging: awsecs.LogDrivers_AwsLogs(&awsecs.AwsLogDriverProps{
 			LogGroup: awslogs.NewLogGroup(stack, jsii.String(resourceName+"-log-group"), &awslogs.LogGroupProps{
