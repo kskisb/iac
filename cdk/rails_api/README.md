@@ -1,6 +1,6 @@
 # Twitter Clone インフラ
 
-このインフラは [このリポジトリ](https://github.com/kskisb/rails_api) と連動しています。次の流れでセットアップできます。
+このインフラ構成のリポジトリは [このリポジトリ](https://github.com/kskisb/rails_api) と連動しています。次の流れでセットアップできます。
 
 ## 概要
 
