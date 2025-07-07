@@ -42,7 +42,7 @@ RDS (PostgreSQL)
 プロジェクトルートに `.env` ファイルを作成してください：
 
 ```bash
-ACCOUNT_ID=123456789
+ACCOUNT_ID=*********
 REGION=*********
 RESOURCE_NAME=*********
 REPOSITORY_NAME=*********
@@ -54,6 +54,7 @@ DB_PASSWORD=*********
 DB_PORT=5432
 ALLOWED_ORIGIN=*********
 ```
+※実際にデプロイして運用する場合は、RAILS_MASTER_KEYなどはこの環境変数に含めず、他の方法で取得できるようにするべきかと思います。
 
 ## セットアップ
 
