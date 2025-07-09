@@ -11,11 +11,11 @@ The `cdk.json` file tells the CDK toolkit how to execute your app.
  * `cdk synth`       emits the synthesized CloudFormation template
  * `go test`         run unit tests
 
-
 ## ブルーグリーンデプロイ設定
 
-`bg_deploy_sample/` に `.env`ファイルを作成し、次の内容を配置します。
+このリポジトリは [bg-deploy-sample](https://github.com/kskisb/bg-deploy-sample) と連携しています。デプロイの流れはそちらを参照してください。
 
+このリポジトリでの設定手順としては、`bg_deploy_sample/` に `.env`ファイルを作成し、次の内容を配置します。
 ```
 ACCOUNT_ID=${ACCOUNT_ID} # 12桁のアカウントID
 REGION=${REGION} # 例: ap-northeast-1
