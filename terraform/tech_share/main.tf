@@ -192,6 +192,30 @@ resource "aws_security_group" "rds" {
   })
 }
 
+resource "aws_security_group" "vpce" {
+  name        = "${local.name_prefix}-vpce-sg"
+  description = "Security group for VPC endpoints"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-vpce-sg"
+  })
+}
+
 resource "aws_db_subnet_group" "main" {
   name       = "${local.name_prefix}-db-subnet-group"
   subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_c.id]
@@ -225,8 +249,9 @@ resource "aws_db_instance" "main" {
 }
 
 resource "random_password" "db_password" {
-  length  = 16
-  special = true
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 # S3 (gateway)
@@ -248,7 +273,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
   service_name        = "com.amazonaws.${var.region}.ecr.api"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = local.private_subnets
-  security_group_ids  = [aws_security_group.ecs.id]
+  security_group_ids  = [aws_security_group.vpce.id]
   private_dns_enabled = true
   tags                = merge(local.common_tags, { Name = "${local.name_prefix}-vpce-ecr-api" })
 }
@@ -258,7 +283,7 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   service_name        = "com.amazonaws.${var.region}.ecr.dkr"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = local.private_subnets
-  security_group_ids  = [aws_security_group.ecs.id]
+  security_group_ids  = [aws_security_group.vpce.id]
   private_dns_enabled = true
   tags                = merge(local.common_tags, { Name = "${local.name_prefix}-vpce-ecr-dkr" })
 }
@@ -268,7 +293,7 @@ resource "aws_vpc_endpoint" "secretsmanager" {
   service_name        = "com.amazonaws.${var.region}.secretsmanager"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = local.private_subnets
-  security_group_ids  = [aws_security_group.ecs.id]
+  security_group_ids  = [aws_security_group.vpce.id]
   private_dns_enabled = true
   tags                = merge(local.common_tags, { Name = "${local.name_prefix}-vpce-secrets" })
 }
@@ -278,7 +303,7 @@ resource "aws_vpc_endpoint" "logs" {
   service_name        = "com.amazonaws.${var.region}.logs"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = local.private_subnets
-  security_group_ids  = [aws_security_group.ecs.id]
+  security_group_ids  = [aws_security_group.vpce.id]
   private_dns_enabled = true
   tags                = merge(local.common_tags, { Name = "${local.name_prefix}-vpce-logs" })
 }
@@ -288,7 +313,7 @@ resource "aws_vpc_endpoint" "ssm" {
   service_name        = "com.amazonaws.${var.region}.ssm"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = local.private_subnets
-  security_group_ids  = [aws_security_group.ecs.id]
+  security_group_ids  = [aws_security_group.vpce.id]
   private_dns_enabled = true
   tags                = merge(local.common_tags, { Name = "${local.name_prefix}-vpce-ssm" })
 }
@@ -371,6 +396,28 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Secrets Manager アクセス許可（タスク実行ロール）
+resource "aws_iam_role_policy" "ecs_task_execution_role_secrets_policy" {
+  name = "${local.name_prefix}-ecs-task-execution-secrets-policy"
+  role = aws_iam_role.ecs_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          aws_secretsmanager_secret.db_password.arn,
+          aws_secretsmanager_secret.rails_master_key.arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "ecs_task_role" {
   name = "${local.name_prefix}-ecs-task-role"
 
@@ -403,7 +450,7 @@ resource "aws_iam_role_policy" "ecs_task_role_policy" {
         Action = [
           "secretsmanager:GetSecretValue"
         ]
-        Resource = "*"
+        Resource = [aws_secretsmanager_secret.db_password.arn]
       }
     ]
   })
@@ -441,15 +488,23 @@ resource "aws_ecs_task_definition" "main" {
       ]
 
       environment = [
+        { name = "RAILS_ENV", value = "production" },
+        { name = "RAILS_LOG_TO_STDOUT", value = "true" },
+        { name = "DB_HOST", value = aws_db_instance.main.address },
+        { name = "DB_NAME", value = aws_db_instance.main.db_name },
+        { name = "DB_USERNAME", value = aws_db_instance.main.username }
+      ],
+
+      secrets = [
         {
-          name  = "RAILS_ENV"
-          value = "production"
+          name      = "DB_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.db_password.arn
         },
         {
-          name  = "RAILS_LOG_TO_STDOUT"
-          value = "true"
+          name      = "RAILS_MASTER_KEY"
+          valueFrom = aws_secretsmanager_secret.rails_master_key.arn
         }
-      ]
+      ],
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -492,4 +547,24 @@ resource "aws_ecs_service" "main" {
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-service"
   })
+}
+
+resource "aws_secretsmanager_secret" "db_password" {
+  name = "${local.name_prefix}-db-password"
+  tags = local.common_tags
+}
+
+resource "aws_secretsmanager_secret_version" "db_password_version" {
+  secret_id     = aws_secretsmanager_secret.db_password.id
+  secret_string = random_password.db_password.result
+}
+
+resource "aws_secretsmanager_secret" "rails_master_key" {
+  name = "${local.name_prefix}-rails-master-key"
+  tags = local.common_tags
+}
+
+resource "aws_secretsmanager_secret_version" "rails_master_key_version" {
+  secret_id     = aws_secretsmanager_secret.rails_master_key.id
+  secret_string = var.rails_master_key
 }

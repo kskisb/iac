@@ -21,3 +21,10 @@ variable "image_url" {
   type        = string
   # デフォルトなし — terraform.tfvars で値を渡す
 }
+
+variable "rails_master_key" {
+  description = "Rails master key for production (sensitive)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
