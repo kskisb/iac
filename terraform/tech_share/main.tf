@@ -466,3 +466,30 @@ resource "aws_ecs_task_definition" "main" {
     Name = "${local.name_prefix}-task"
   })
 }
+
+resource "aws_ecs_service" "main" {
+  name            = "${local.name_prefix}-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.main.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.private_a.id, aws_subnet.private_c.id]
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.main.arn
+    container_name   = "tech-share-api"
+    container_port   = 3000
+  }
+
+  health_check_grace_period_seconds = 60
+  depends_on                        = [aws_lb_listener.main]
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-service"
+  })
+}
