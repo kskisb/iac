@@ -191,3 +191,40 @@ resource "aws_security_group" "rds" {
     Name = "${local.name_prefix}-rds-sg"
   })
 }
+
+resource "aws_db_subnet_group" "main" {
+  name       = "${local.name_prefix}-db-subnet-group"
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_c.id]
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-db-subnet-group"
+  })
+}
+
+resource "aws_db_instance" "main" {
+  identifier     = "${local.name_prefix}-postgres"
+  engine         = "postgres"
+  engine_version = "15"
+  instance_class = "db.t4g.micro"
+
+  allocated_storage = 20
+  storage_type      = "gp3"
+
+  db_name  = "techshare"
+  username = "postgres"
+  password = random_password.db_password.result
+
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+
+  skip_final_snapshot = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-postgres"
+  })
+}
+
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
+}
