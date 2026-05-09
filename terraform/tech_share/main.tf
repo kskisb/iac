@@ -336,3 +336,75 @@ resource "aws_lb_listener" "main" {
     target_group_arn = aws_lb_target_group.main.arn
   }
 }
+
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/${local.name_prefix}"
+  retention_in_days = 1
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-logs"
+  })
+}
+
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "${local.name_prefix}-ecs-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# AWS 標準ポリシーをアタッチ
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role" "ecs_task_role" {
+  name = "${local.name_prefix}-ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# RDS と Secrets Manager へのアクセス許可
+resource "aws_iam_role_policy" "ecs_task_role_policy" {
+  name = "${local.name_prefix}-ecs-task-policy"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
